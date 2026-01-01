@@ -1,0 +1,147 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useChat } from '../../hooks/useChat';
+import { useAppContext } from '../../context/AppContext';
+import Message from './Message';
+import MessageInput from './MessageInput';
+import TypingIndicator from './TypingIndicator';
+import WelcomeScreen from './WelcomeScreen';
+import ComingSoonOverlay from '../common/ComingSoonOverlay';
+import UserTypeSelector from '../common/UserTypeSelector';
+import QuickActions from '../common/QuickActions';
+
+const ChatPanel = () => {
+  const { messages, isStreaming, activeDocumentId, documents } = useChat();
+  const { state } = useAppContext();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const activeDocument = documents.find(d => d.id === activeDocumentId);
+  
+  // Check if we should show welcome screen (only greeting message exists)
+  const shouldShowWelcome = messages.length === 1 && messages[0].id.includes('greeting');
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isStreaming]);
+
+  return (
+    <div className="flex flex-col h-screen max-h-screen bg-white dark:bg-slate-950 relative">
+      {/* Coming Soon Overlay for non-PDF modes (hidden for general chat) */}
+      <ComingSoonOverlay 
+        mode={state.mode} 
+        isVisible={state.mode !== 'pdf' && state.mode !== 'general'} 
+      />
+      {/* URL Prompts - Fixed at top when needed */}
+      {!shouldShowWelcome && state.mode === 'youtube' && !state.youtubeUrl && (
+        <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-3xl mx-auto px-4 py-6">
+            <YouTubeUrlPrompt />
+          </div>
+        </div>
+      )}
+      
+      {!shouldShowWelcome && state.mode === 'site' && !state.siteUrl && (
+        <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-3xl mx-auto px-4 py-6">
+            <SiteUrlPrompt />
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto scroll-smooth">
+        {/* Show Welcome Screen when only greeting message exists */}
+        {shouldShowWelcome ? (
+          <div className="animate-fade-in">
+            <WelcomeScreen mode={state.mode} hasDocument={!!activeDocument} />
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="space-y-6 py-6">
+              {messages.map((msg, index) => (
+                <div 
+                  key={msg.id} 
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
+                >
+                  <Message message={msg} />
+                </div>
+              ))}
+              {isStreaming && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Message Input - Fixed at Bottom */}
+      <div className="flex-shrink-0 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+        <MessageInput />
+      </div>
+    </div>
+  );
+};
+
+export default ChatPanel;
+
+// Inline prompt components for URLs
+const YouTubeUrlPrompt: React.FC = () => {
+  const { state, dispatch } = useAppContext();
+  const [val, setVal] = useState(state.youtubeUrl ?? '');
+  const onSave = () => dispatch({ type: 'SET_YOUTUBE_URL', payload: val || null });
+  
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+      <div className="mb-3">
+        <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-1">YouTube Video URL</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Enter a YouTube URL to analyze the video content</p>
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="https://www.youtube.com/watch?v=..."
+          className="input-modern flex-1"
+        />
+        <button 
+          onClick={onSave} 
+          className="btn-primary"
+        >
+          Set URL
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const SiteUrlPrompt: React.FC = () => {
+  const { state, dispatch } = useAppContext();
+  const [val, setVal] = useState(state.siteUrl ?? '');
+  const onSave = () => dispatch({ type: 'SET_SITE_URL', payload: val || null });
+  
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+      <div className="mb-3">
+        <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-1">Website URL</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Enter a website URL to analyze the content</p>
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="https://example.com"
+          className="input-modern flex-1"
+        />
+        <button 
+          onClick={onSave} 
+          className="btn-primary"
+        >
+          Set URL
+        </button>
+      </div>
+    </div>
+  );
+};

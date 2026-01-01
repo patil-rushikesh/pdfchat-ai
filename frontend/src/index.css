@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Modern clean component styles */
+@layer components {
+  /* Elevated surface with subtle shadow */
+  .card {
+    @apply rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Input fields - clean minimal style */
+  .input-modern {
+    @apply w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 font-medium transition-all duration-200 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-all duration-200 active:scale-95;
+  }
+
+  /* Subtle hover effects */
+  .hover-lift {
+    @apply transition-all duration-200 hover:scale-105 hover:shadow-lg;
+  }
+
+  /* Clean message bubbles */
+  .message-user {
+    @apply rounded-2xl rounded-tr-lg px-4 py-3 bg-red-600 text-white shadow-sm max-w-xs lg:max-w-md xl:max-w-lg;
+  }
+
+  .message-ai {
+    @apply rounded-2xl rounded-tl-lg px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm max-w-xs lg:max-w-md xl:max-w-lg;
+  }
+
+  /* Smooth animations */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .slide-in {
+    @apply animate-slide-in-right;
+  }
+}
+
+.liquid-border {
+  animation: liquidBorder 8s ease-in-out infinite;
+}
+
+/* Theme Variables */
+:root {
+  --text-primary: #212529;
+  --text-secondary: #6C757D;
+  --bg-sidebar: #F8F9FA;
+  --bg-header: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --border-color: #DEE2E6;
+  --accent-color: #0D6EFD;
+  /* ----------------- */
+  
+}
+
+
+
+/* Dark Theme */
+.theme-dark {
+  --bg-primary: #121212;
+  --bg-surface: #1E1E1E;
+  --bg-border: #2D2D2D;
+  --text-primary: #FFFFFF;
+  --text-secondary: #CCCCCC;
+  --bg-sidebar: #1E1E1E;
+  --bg-header: #2D2D2D;
+  --bg-input: #2D2D2D;
+  --bg-button: #3B82F6;
+  --bg-button-hover: #2563EB;
+  --border-input: #444444;
+  --border-button: #3B82F6;
+  --aiMessage: #1E1E1E;
+  --aiMessage-border: #2D2D2D;
+  --userMessage: #308de9;
+  --userMessage-border: #1c80e5;
+  --text: #ffffff;
+}
+
+/* Light Theme */
+.theme-light {
+  --bg-primary: #F8F9FA;
+  --bg-surface: #dddfe0;
+  --bg-border: #E9ECEF;
+  --text-primary: #212529;
+  --text-secondary: #6C757D;
+  --bg-sidebar: #F8F9FA;
+  --bg-header: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --bg-button: #0D6EFD;
+  --bg-button-hover: #0B5ED7;
+  --border-input: #CED4DA;
+  --border-button: #0D6EFD;
+  --aiMessage: #FFFFFF;
+  --aiMessage-border: #E9ECEF;
+  --userMessage: #0D6EFD;
+  --userMessage-border: #0B5ED7;
+  --text: #000000;
+}
+
+/* Blue Theme */
+.theme-blue {
+  --bg-primary: #F8F9FA;
+  --bg-surface: #dddfe0;
+  --bg-border: #E9ECEF;
+  --text-primary: #212529;
+  --text-secondary: #6C757D;
+  --bg-sidebar: #F8F9FA;
+  --bg-header: #FFFFFF;
+  --bg-input: #334155;
+  --bg-button: #3B82F6;
+  --bg-button-hover: #2563EB;
+  --border-input: #475569;
+  --border-button: #3B82F6;
+  --aiMessage: #1E293B;
+  --aiMessage-border: #334155;
+  --userMessage: #3B82F6;
+  --userMessage-border: #2563EB;
+  --text: #ffffff;
+}
+
+/* Green Theme */
+.theme-green {
+  --bg-primary: #064E3B;
+  --bg-surface: #065F46;
+  --bg-border: #047857;
+  --text-primary: #ECFDF5;
+  --text-secondary: #D1FAE5;
+  --bg-sidebar: #065F46;
+  --bg-header: #047857;
+  --bg-input: #047857;
+  --bg-button: #10B981;
+  --bg-button-hover: #059669;
+  --border-input: #059669;
+  --border-button: #10B981;
+  --aiMessage: #065F46;
+  --aiMessage-border: #047857;
+  --userMessage: #10B981;
+  --userMessage-border: #059669;
+  --text: #ffffff;
+}
+
+/* Purple Theme */
+.theme-purple {
+  --bg-primary: #1E1B4B;
+  --bg-surface: #312E81;
+  --bg-border: #4338CA;
+  --text-primary: #F3F4F6;
+  --text-secondary: #E0E7FF;
+  --bg-sidebar: #312E81;
+  --bg-header: #4338CA;
+  --bg-input: #4338CA;
+  --bg-button: #8B5CF6;
+  --bg-button-hover: #7C3AED;
+  --border-input: #6366F1;
+  --border-button: #8B5CF6;
+  --aiMessage: #312E81;
+  --aiMessage-border: #4338CA;
+  --userMessage: #8B5CF6;
+  --userMessage-border: #7C3AED;
+  --text: #ffffff;
+}
+
+/* Orange Theme */
+.theme-orange {
+  --bg-primary: #451A03;
+  --bg-surface: #7C2D12;
+  --bg-border: #EA580C;
+  --text-primary: #FFF7ED;
+  --text-secondary: #FED7AA;
+  --bg-sidebar: #7C2D12;
+  --bg-header: #EA580C;
+  --bg-input: #EA580C;
+  --bg-button: #F97316;
+  --bg-button-hover: #EA580C;
+  --border-input: #FB923C;
+  --border-button: #F97316;
+  --aiMessage: #7C2D12;
+  --aiMessage-border: #EA580C;
+  --userMessage: #F97316;
+  --userMessage-border: #EA580C;
+  --text: #ffffff;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, backdrop-filter 0.3s ease;
+}
