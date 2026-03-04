@@ -22,7 +22,7 @@
   "author": "Rushikesh Patil",
   "license": "MIT",
   "dependencies": {
-    "@google/genai": "^1.15.0",
+    "@google/generative-ai": "^0.24.1",
     "@pinecone-database/pinecone": "^2.1.0",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",

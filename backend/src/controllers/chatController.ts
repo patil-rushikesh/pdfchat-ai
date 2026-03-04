@@ -208,11 +208,12 @@ export const chatWithDocument = async (req: Request, res: Response, next: NextFu
 
         // 4. Get response from Gemini (non-streaming for now)
         console.log('Getting chat completion from Gemini...');
-        const stream = await getChatCompletion(message, context, history, validatedUserType);
+        const validHistory = history.filter(item => item.role !== undefined && item.role !== null);
+        const response = await getChatCompletion(message, context, validHistory as any, validatedUserType);
         
         let fullResponse = '';
-        for await (const chunk of stream) {
-            const textPart = chunk.text;
+        for await (const chunk of response.stream) {
+            const textPart = chunk.text();
             if (textPart) {
                 fullResponse += textPart;
             }

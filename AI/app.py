@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 
-app.mount("/static", StaticFiles(directory="frontend", html=True), name="static")
+app.mount("/static", StaticFiles(directory="../frontend", html=True), name="static")
 
 # PDF Upload Endpoint
 @app.post("/upload_pdf")
@@ -60,7 +60,7 @@ async def chat_api(payload: dict):
 
 @app.get("/")
 async def root():
-    return FileResponse("frontend/index.html")
+    return FileResponse("../frontend/index.html")
 
 
 if __name__ == "__main__":

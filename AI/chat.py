@@ -5,7 +5,6 @@ print("Chat module loaded")
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain.chains import RetrievalQA
 import os
 
 

@@ -71,7 +71,7 @@ export const generateGeneralChatResponse = async (
 
     let fullResponse = '';
     for await (const chunk of stream) {
-      const textPart = chunk.text;
+      const textPart = chunk.text();
       if (textPart) {
         fullResponse += textPart;
       }

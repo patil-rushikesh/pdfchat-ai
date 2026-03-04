@@ -66,12 +66,7 @@ const SourceCitation: React.FC<SourceCitationProps> = ({ sources }) => {
                   "{source.excerpt}"
                 </p>
                 
-                <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full border ${getConfidenceColor(source.confidence)}`}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
-                    <span>{getConfidenceLabel(source.confidence)} confidence</span>
-                  </div>
-                  
+                <div className="flex items-center justify-between"> 
                   <ExternalLinkIcon className="w-3 h-3 text-[var(--text-secondary)] group-hover:text-[var(--bg-button)] transition-colors" />
                 </div>
               </div>
