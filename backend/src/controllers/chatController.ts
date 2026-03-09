@@ -206,18 +206,10 @@ export const chatWithDocument = async (req: Request, res: Response, next: NextFu
         // 3. Add user message to history
         addMessageToHistory(documentId, { role: 'user', parts: [{ text: message }] });
 
-        // 4. Get response from Gemini (non-streaming for now)
-        console.log('Getting chat completion from Gemini...');
+        // 4. Get response from Ollama (non-streaming)
+        console.log('Getting chat completion from Ollama...');
         const validHistory = history.filter(item => item.role !== undefined && item.role !== null);
-        const response = await getChatCompletion(message, context, validHistory as any, validatedUserType);
-        
-        let fullResponse = '';
-        for await (const chunk of response.stream) {
-            const textPart = chunk.text();
-            if (textPart) {
-                fullResponse += textPart;
-            }
-        }
+        const fullResponse = await getChatCompletion(message, context, validHistory as any);
 
         console.log(`Generated response length: ${fullResponse.length} characters`);
 
