@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const OLLAMA_URL = "http://localhost:11434";
+
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 const EMBEDDING_MODEL = "nomic-embed-text";
 const CHAT_MODEL = "llama3.2:3b";
 

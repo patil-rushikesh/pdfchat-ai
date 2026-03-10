@@ -31,9 +31,9 @@ if (!fs.existsSync(frontendEnvPath)) {
 
 console.log('\n📋 Next steps:');
 console.log('1. Edit backend/.env and add your API keys:');
-console.log('   - GEMINI_API_KEY: Get from https://makersuite.google.com/app/apikey');
 console.log('   - PINECONE_API_KEY: Get from https://pinecone.io');
 console.log('   - PINECONE_INDEX: Your Pinecone index name');
+console.log('   - OLLAMA_URL: Get from your Ollama instance (e.g., http://localhost:11434)');
 console.log('2. Run: pnpm install');
 console.log('3. Run: pnpm dev');
-console.log('\n�� Happy coding!'); 
+console.log('\n Happy coding!'); 
