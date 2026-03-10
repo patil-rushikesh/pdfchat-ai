@@ -14,19 +14,25 @@ const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 let tokenRefreshPromise: Promise<string> | null = null;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Returns (or generates) a persistent anonymous user ID stored in localStorage.
- * This uniquely identifies the browser session without requiring sign-up.
+ * Always a UUID v4 — any legacy non-UUID value is replaced transparently.
  */
 export const getUserId = (): string => {
-  let id = localStorage.getItem('pdfchat-user-id');
-  if (!id) {
-    id =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `user_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem('pdfchat-user-id', id);
-  }
+  const stored = localStorage.getItem('pdfchat-user-id');
+  if (stored && UUID_RE.test(stored)) return stored;
+
+  // Generate a fresh UUID (replace missing or legacy non-UUID IDs).
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
+  localStorage.setItem('pdfchat-user-id', id);
   return id;
 };
 

@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS documents (
     id           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     chat_id      VARCHAR(64)   NOT NULL,
-    user_id      UUID,                          -- NULL until auth is wired up
+    user_id      TEXT,                          -- browser-generated ID, any format
     file_name    TEXT          NOT NULL,
     s3_url       TEXT          NOT NULL,
     file_size    INTEGER       NOT NULL,
