@@ -1,6 +1,6 @@
 
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import type { AppState, Document, Message, MessageSource, Toast, UploadProgress, Theme, UserType, ChatMode } from '../types';
+import type { AppState, Document, Message, MessageSource, Toast, UploadProgress, Theme, UserType, ChatMode, ChatSession } from '../types';
 import { GREETING_MESSAGES } from '../constants';
 
 type Action =
@@ -23,7 +23,15 @@ type Action =
   | { type: 'SET_USER_TYPE'; payload: UserType }
   | { type: 'SET_MODE'; payload: ChatMode }
   | { type: 'SET_YOUTUBE_URL'; payload: string | null }
-  | { type: 'SET_SITE_URL'; payload: string | null };
+  | { type: 'SET_SITE_URL'; payload: string | null }
+  // Chat session actions
+  | { type: 'SET_CHAT_SESSIONS'; payload: ChatSession[] }
+  | { type: 'PREPEND_CHAT_SESSION'; payload: ChatSession }
+  | { type: 'REMOVE_CHAT_SESSION'; payload: string }
+  | { type: 'UPDATE_CHAT_SESSION_TITLE'; payload: { chat_id: string; title: string } }
+  | { type: 'SET_ACTIVE_CHAT_ID'; payload: string | null }
+  | { type: 'SET_ACTIVE_CHAT_MESSAGES'; payload: Message[] }
+  | { type: 'SET_CHAT_SESSIONS_LOADING'; payload: boolean };
 
 // Load persisted state from localStorage
 const loadPersistedState = (): Partial<AppState> => {
@@ -64,6 +72,10 @@ const initialState: AppState = {
   siteUrl: null,
   error: null,
   toasts: [],
+  // Chat session state
+  chatSessions: [],
+  activeChatId: null,
+  chatSessionsLoading: false,
 };
 
 const AppContext = createContext<{
@@ -229,6 +241,37 @@ const appReducer = (state: AppState, action: Action): AppState => {
         return { ...state, youtubeUrl: action.payload };
     case 'SET_SITE_URL':
         return { ...state, siteUrl: action.payload };
+    // Chat session reducers
+    case 'SET_CHAT_SESSIONS':
+        return { ...state, chatSessions: action.payload };
+    case 'PREPEND_CHAT_SESSION':
+        return {
+          ...state,
+          chatSessions: [action.payload, ...state.chatSessions.filter(s => s.chat_id !== action.payload.chat_id)],
+        };
+    case 'REMOVE_CHAT_SESSION':
+        return {
+          ...state,
+          chatSessions: state.chatSessions.filter(s => s.chat_id !== action.payload),
+          activeChatId: state.activeChatId === action.payload ? null : state.activeChatId,
+        };
+    case 'UPDATE_CHAT_SESSION_TITLE':
+        return {
+          ...state,
+          chatSessions: state.chatSessions.map(s =>
+            s.chat_id === action.payload.chat_id ? { ...s, title: action.payload.title } : s
+          ),
+        };
+    case 'SET_ACTIVE_CHAT_ID':
+        return { ...state, activeChatId: action.payload };
+    case 'SET_ACTIVE_CHAT_MESSAGES':
+        return {
+          ...state,
+          messages: action.payload,
+          isStreaming: false,
+        };
+    case 'SET_CHAT_SESSIONS_LOADING':
+        return { ...state, chatSessionsLoading: action.payload };
     default:
       return state;
   }

@@ -1,4 +1,16 @@
+/** Core domain types — user-facing entities. */
+
 export type Sender = 'user' | 'ai';
+
+export interface ChatSession {
+  chat_id: string;
+  title: string;
+  user_id?: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+  document_count?: number;
+}
 
 export interface MessageSource {
   id: string;
@@ -6,7 +18,7 @@ export interface MessageSource {
   documentName: string;
   pageNumber: number;
   excerpt: string;
-  confidence: number; // 0-1
+  confidence: number;
   startIndex?: number;
   endIndex?: number;
 }
@@ -28,7 +40,7 @@ export interface HighlightInfo {
 export interface Document {
   id: string;
   name: string;
-  // fileUrl is now optional as it's generated for preview
+  /** Generated on-demand for PDF preview; not persisted. */
   fileUrl?: string;
   highlightInfo?: HighlightInfo;
 }
@@ -41,7 +53,7 @@ export interface Toast {
 
 export interface UploadProgress {
   fileName: string;
-  progress: number; // 0-100
+  progress: number; // 0–100
   status: 'uploading' | 'processing' | 'complete' | 'error';
   error?: string;
 }
@@ -49,25 +61,3 @@ export interface UploadProgress {
 export type Theme = 'dark' | 'light' | 'blue' | 'green' | 'purple' | 'orange';
 export type UserType = 'student' | 'teacher' | 'researcher' | 'general';
 export type ChatMode = 'pdf' | 'general' | 'youtube' | 'site';
-
-export interface AppState {
-  documents: Document[];
-  activeDocumentId: string | null;
-  // This now holds the document to be shown in the side panel
-  previewingDocument: Document | null; 
-  messages: Message[];
-  messagesByMode?: Record<ChatMode, Message[]>;
-  messagesByDocument?: Record<string, Message[]>; // Store chat history per document ID
-  isLoading: boolean; // For file uploads
-  isStreaming: boolean; // For chat responses
-  uploadProgress: UploadProgress | null;
-  theme: Theme;
-  userType: UserType;
-  mode: ChatMode;
-  youtubeUrl?: string | null;
-  siteUrl?: string | null;
-  error: string | null;
-  toasts: Toast[];
-}
-
-// for 

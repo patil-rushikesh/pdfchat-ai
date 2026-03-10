@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
 import { useAppContext } from '../../context/AppContext';
 import Message from './Message';
@@ -6,54 +6,101 @@ import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
 import WelcomeScreen from './WelcomeScreen';
 import ComingSoonOverlay from '../common/ComingSoonOverlay';
-import UserTypeSelector from '../common/UserTypeSelector';
-import QuickActions from '../common/QuickActions';
+import { FileTextIcon, UploadCloudIcon } from '../common/icons';
 
 const ChatPanel = () => {
-  const { messages, isStreaming, activeDocumentId, documents } = useChat();
+  const { messages, isStreaming, activeDocumentId, documents, uploadFile } = useChat();
   const { state } = useAppContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+  const fileInputRef   = useRef<HTMLInputElement>(null);
+
   const activeDocument = documents.find(d => d.id === activeDocumentId);
-  
+  const activeSession  = state.chatSessions.find(s => s.chat_id === state.activeChatId);
+
   // Check if we should show welcome screen (only greeting message exists)
   const shouldShowWelcome = messages.length === 1 && messages[0].id.includes('greeting');
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, scrollToBottom]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+    e.target.value = '';
+  };
+
+  const lastAiMsgId = [...messages].reverse().find(m => m.sender === 'ai')?.id;
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-white dark:bg-slate-950 relative">
-      {/* Coming Soon Overlay for non-PDF modes (hidden for general chat) */}
-      <ComingSoonOverlay 
-        mode={state.mode} 
-        isVisible={state.mode !== 'pdf' && state.mode !== 'general'} 
+      {/* Coming Soon Overlay for youtube/site modes */}
+      <ComingSoonOverlay
+        mode={state.mode}
+        isVisible={state.mode !== 'pdf' && state.mode !== 'general'}
       />
-      {/* URL Prompts - Fixed at top when needed */}
+
+      {/* ── Chat Header ── */}
+      <div className="flex-shrink-0 flex items-center justify-between h-12 px-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950">
+        <div className="flex items-center gap-2 min-w-0">
+          {activeSession ? (
+            <>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-xs">
+                {activeSession.title}
+              </span>
+              {activeSession.document_count ? (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] font-medium flex-shrink-0">
+                  <FileTextIcon className="w-2.5 h-2.5" />
+                  {activeSession.document_count} doc{activeSession.document_count > 1 ? 's' : ''}
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-500">
+              {state.mode === 'general' ? 'General Chat' : state.mode === 'pdf' ? 'PDF Chat' : 'PaperMind AI'}
+            </span>
+          )}
+        </div>
+
+        {/* Upload PDF button in header — only for pdf mode or active session */}
+        {(state.mode === 'pdf' || state.activeChatId) && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+            >
+              <UploadCloudIcon className="w-3.5 h-3.5" />
+              Upload PDF
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* URL Prompts */}
       {!shouldShowWelcome && state.mode === 'youtube' && !state.youtubeUrl && (
         <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800">
-          <div className="max-w-3xl mx-auto px-4 py-6">
-            <YouTubeUrlPrompt />
-          </div>
+          <div className="max-w-3xl mx-auto px-4 py-6"><YouTubeUrlPrompt /></div>
         </div>
       )}
-      
       {!shouldShowWelcome && state.mode === 'site' && !state.siteUrl && (
         <div className="flex-shrink-0 border-b border-slate-200 dark:border-slate-800">
-          <div className="max-w-3xl mx-auto px-4 py-6">
-            <SiteUrlPrompt />
-          </div>
+          <div className="max-w-3xl mx-auto px-4 py-6"><SiteUrlPrompt /></div>
         </div>
       )}
 
       {/* Main Content Area - Scrollable */}
       <div className="flex-1 overflow-y-auto scroll-smooth">
-        {/* Show Welcome Screen when only greeting message exists */}
         {shouldShowWelcome ? (
           <div className="animate-fade-in">
             <WelcomeScreen mode={state.mode} hasDocument={!!activeDocument} />
@@ -62,23 +109,28 @@ const ChatPanel = () => {
           <div className="max-w-3xl mx-auto px-4">
             <div className="space-y-6 py-6">
               {messages.map((msg, index) => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className="animate-fade-in"
-                  style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
+                  style={{ animationDelay: `${Math.min(index * 30, 150)}ms` }}
                 >
-                  <Message message={msg} />
+                  <Message
+                    message={msg}
+                    isStreaming={isStreaming && msg.id === lastAiMsgId}
+                  />
                 </div>
               ))}
-              {isStreaming && <TypingIndicator />}
+              {isStreaming && messages[messages.length - 1]?.sender !== 'ai' && (
+                <TypingIndicator />
+              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Message Input - Fixed at Bottom */}
-      <div className="flex-shrink-0 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+      {/* Message Input */}
+      <div className="flex-shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
         <MessageInput />
       </div>
     </div>

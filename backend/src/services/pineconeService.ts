@@ -1,87 +1,125 @@
+/**
+ * pineconeService.ts
+ *
+ * Manages all Pinecone interactions:
+ *   – Lazy singleton initialisation via getPinecone()
+ *   – upsertDocument:  store chunk embeddings for a document namespace
+ *   – queryDocument:   retrieve top-K chunks for a query embedding
+ *
+ * All public functions call getPinecone() internally — no client parameter
+ * needs to be passed or stored externally.
+ */
 
 import { Pinecone } from '@pinecone-database/pinecone';
+import { ENV } from '../config/env';
 
-let pinecone: Pinecone | null = null;
-let pineconeInitialized = false;
+let _client: Pinecone | null = null;
 
-export const initPinecone = async (): Promise<Pinecone> => {
-    if (pinecone && pineconeInitialized) {
-        return pinecone;
-    }
+/**
+ * Returns the shared Pinecone client, initialising it on first call.
+ * Returns null if required env vars are absent (non-fatal graceful degradation).
+ */
+export const getPinecone = async (): Promise<Pinecone | null> => {
+  if (_client) return _client;
 
-    const apiKey = process.env.PINECONE_API_KEY;
-    if (!apiKey) {
-        console.warn("⚠️  PINECONE_API_KEY is not set. Pinecone features will be disabled.");
-        throw new Error('Pinecone API key is not set.');
-    }
+  if (!ENV.PINECONE_API_KEY || !ENV.PINECONE_INDEX) {
+    console.warn('⚠️  PINECONE_API_KEY or PINECONE_INDEX not set — document chat disabled.');
+    return null;
+  }
 
-    const indexName = process.env.PINECONE_INDEX;
-    if (!indexName) {
-        console.warn("⚠️  PINECONE_INDEX is not set. Pinecone features will be disabled.");
-        throw new Error('Pinecone index name is not set.');
-    }
-
-    try {
-        pinecone = new Pinecone({ apiKey });
-        pineconeInitialized = true;
-        console.log("✅ Pinecone initialized successfully");
-        return pinecone;
-    } catch (error) {
-        console.error("❌ Failed to initialize Pinecone:", error);
-        throw error;
-    }
+  try {
+    _client = new Pinecone({ apiKey: ENV.PINECONE_API_KEY });
+    console.log('✅ Pinecone initialised');
+    return _client;
+  } catch (err) {
+    console.error('❌ Failed to initialise Pinecone:', err);
+    return null;
+  }
 };
 
-const getIndex = (pinecone: Pinecone) => {
-    const indexName = process.env.PINECONE_INDEX;
-    if (!indexName) {
-        throw new Error('Pinecone index name is not set.');
-    }
-    return pinecone.index(indexName);
+const getIndex = (client: Pinecone) => {
+  if (!ENV.PINECONE_INDEX) throw new Error('PINECONE_INDEX env var is not set');
+  return client.index(ENV.PINECONE_INDEX);
 };
 
-export const upsertToPinecone = async (pinecone: Pinecone, embeddings: number[][], chunks: string[], docId: string): Promise<void> => {
-    if (!pineconeInitialized) {
-        throw new Error('Pinecone is not initialized. Please set PINECONE_API_KEY and PINECONE_INDEX environment variables.');
-    }
-
-    const index = getIndex(pinecone);
-    const namespace = index.namespace(docId);
-
-    const vectors = chunks.map((chunk, i) => {
-        const embedding = embeddings[i];
-        if (!embedding || embedding.length === 0) {
-            throw new Error(`Invalid embedding at index ${i}`);
-        }
-        
-        return {
-            id: `${docId}-chunk-${i}`,
-            values: embedding,
-            metadata: { text: chunk },
-        };
-    }).filter(vector => vector.values && vector.values.length > 0);
-    
-    // Upsert in batches to avoid overwhelming the API
-    const batchSize = 100;
-    for (let i = 0; i < vectors.length; i += batchSize) {
-        const batch = vectors.slice(i, i + batchSize);
-        await namespace.upsert(batch);
-    }
+export type PineconeMatch = {
+  id: string;
+  score?: number;
+  metadata?: Record<string, unknown>;
 };
 
-export const queryPinecone = async (pinecone: Pinecone, embedding: number[], docId: string, topK: number = 5) => {
-    if (!pineconeInitialized) {
-        throw new Error('Pinecone is not initialized. Please set PINECONE_API_KEY and PINECONE_INDEX environment variables.');
-    }
+/**
+ * Upserts chunk embeddings for a single document into its own namespace.
+ */
+export const upsertDocument = async (
+  embeddings: number[][],
+  chunks: string[],
+  docId: string
+): Promise<void> => {
+  const client = await getPinecone();
+  if (!client) throw new Error('Pinecone is not initialised');
 
-    const index = getIndex(pinecone);
-    const namespace = index.namespace(docId);
-    
-    const results = await namespace.query({
-        vector: embedding,
-        topK,
-        includeMetadata: true,
-    });
-    
-    return results.matches || [];
+  const index = getIndex(client);
+  const namespace = index.namespace(docId);
+
+  const vectors = chunks
+    .map((chunk, i) => {
+      const values = embeddings[i];
+      if (!values?.length) throw new Error(`Invalid embedding at index ${i}`);
+      return { id: `${docId}-chunk-${i}`, values, metadata: { text: chunk } };
+    })
+    .filter((v) => v.values.length > 0);
+
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < vectors.length; i += BATCH_SIZE) {
+    await namespace.upsert(vectors.slice(i, i + BATCH_SIZE));
+  }
 };
+
+/**
+ * Queries a document namespace for the top-K chunks most similar to the embedding.
+ */
+export const queryDocument = async (
+  embedding: number[],
+  docId: string,
+  topK = 5
+): Promise<PineconeMatch[]> => {
+  const client = await getPinecone();
+  if (!client) throw new Error('Pinecone is not initialised');
+
+  const index = getIndex(client);
+  const namespace = index.namespace(docId);
+
+  const result = await namespace.query({
+    vector: embedding,
+    topK,
+    includeMetadata: true,
+  });
+
+  return (result.matches ?? []) as PineconeMatch[];
+};
+
+// ---------------------------------------------------------------------------
+// Legacy exports — kept so callers still compile during incremental migration.
+// These forward to the new parameter-free functions.
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use getPinecone() */
+export const initPinecone = getPinecone;
+
+/** @deprecated Use upsertDocument() */
+export const upsertToPinecone = async (
+  _client: Pinecone,
+  embeddings: number[][],
+  chunks: string[],
+  docId: string
+): Promise<void> => upsertDocument(embeddings, chunks, docId);
+
+/** @deprecated Use queryDocument() */
+export const queryPinecone = async (
+  _client: Pinecone,
+  embedding: number[],
+  docId: string,
+  topK = 5
+): Promise<PineconeMatch[]> => queryDocument(embedding, docId, topK);
+

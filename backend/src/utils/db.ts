@@ -1,3 +1,11 @@
+/**
+ * Legacy JSON-file chat history helpers.
+ *
+ * These are preserved for local/development use when neither PostgreSQL nor
+ * MongoDB is configured.  New code should use:
+ *   - src/services/mongoService.ts  — for chat conversations (MongoDB)
+ *   - src/models/documentModel.ts  — for document metadata (PostgreSQL)
+ */
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -7,8 +15,8 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
     timestamp: string;
-    feedback?: 'like' | 'dislike'; // Optional feedback field
-    sources?: Array<{ pageNumber: number; textSnippet: string }>; // Optional for model responses
+    feedback?: 'like' | 'dislike';
+    sources?: Array<{ pageNumber: number; textSnippet: string }>;
 }
 
 export type Conversation = ChatMessage[];
@@ -22,7 +30,6 @@ export const readChatDatabase = async (): Promise<Record<string, Conversation>> 
         const fileContent = await fs.readFile(dbPath, 'utf-8');
         return JSON.parse(fileContent);
     } catch (error: any) {
-        // If the file doesn't exist, return an empty object
         if (error.code === 'ENOENT') {
             return {};
         }
@@ -30,8 +37,7 @@ export const readChatDatabase = async (): Promise<Record<string, Conversation>> 
     }
 };
 
-// Writes the entire chat database to the JSON file
+// Writes the entire chat database to the JSON file (dev fallback only)
 export const writeChatDatabase = async (data: Record<string, Conversation>): Promise<void> => {
-    // await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf-8');
-    // TODO Update this by using (1. Postgres, 2. Supabase, 3. Neon, 4.Vercel Postgres* ) there is option to use database.
+    await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf-8');
 };

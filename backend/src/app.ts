@@ -3,15 +3,11 @@ import cors from 'cors';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import apiRoutes from './routes/api'; 
+import apiRoutes from './routes/api';
+import { errorHandler } from './middleware/errorHandler';
+import { ENV } from './config/env';
 
 const app: Application = express();
-
-// Environment configuration
-const ENV = {
-  FRONTEND_URL: process.env.FRONTEND_URL || '*',
-  NODE_ENV: process.env.NODE_ENV || 'development'
-};
 
 // Trust proxy for production deployments (only when behind a real proxy)
 if (ENV.NODE_ENV === 'production') {
@@ -77,8 +73,8 @@ app.use(cors({
 // Rate limiting (configured to work with trust proxy)
 if (ENV.NODE_ENV === 'production') {
   const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: ENV.RATE_LIMIT_WINDOW_MS,
+    max: ENV.RATE_LIMIT_MAX_REQUESTS,
     message: {
       error: 'Too many requests from this IP, please try again later.',
       retryAfter: '15 minutes'
@@ -128,19 +124,6 @@ app.use('*', (req: Request, res: Response) => {
 });
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Global error handler:', err);
-  
-  // Don't leak error details in production
-  const isProduction = ENV.NODE_ENV === 'production';
-  
-  res.status(500).json({
-    error: isProduction ? 'Internal Server Error' : err.message,
-    ...(isProduction ? {} : { stack: err.stack }),
-    timestamp: new Date().toISOString()
-  });
-});
+app.use(errorHandler);
 
 export default app;
-
-
