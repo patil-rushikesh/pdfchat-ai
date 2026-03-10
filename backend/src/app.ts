@@ -35,34 +35,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS configuration
+const isDev = ENV.NODE_ENV !== 'production';
+
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('CORS: Allowing request with no origin');
-      return callback(null, true);
-    }
-    
-    console.log(`CORS: Request from origin: ${origin}`);
-    
-    // Always allow localhost origins for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      console.log('CORS: Allowing localhost origin');
-      return callback(null, true);
-    }
-    
-    // Allow requests from your frontend domain
-    const allowedOrigins = ENV.FRONTEND_URL === '*' ? ['*'] : [ENV.FRONTEND_URL];
-    const isAllowed = allowedOrigins.includes('*') || allowedOrigins.includes(origin);
-    
-    if (isAllowed) {
-      console.log('CORS: Allowing origin');
-      callback(null, true);
-    } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      console.log(`Allowed origins: ${JSON.stringify(allowedOrigins)}`);
-      callback(new Error('Not allowed by CORS'), false);
-    }
+    // Always allow same-origin / non-browser requests (no Origin header)
+    if (!origin) return callback(null, true);
+
+    // In development allow everything so any localhost port works
+    if (isDev) return callback(null, true);
+
+    // In production restrict to the configured frontend URL
+    const allowed = ENV.FRONTEND_URL === '*' || origin === ENV.FRONTEND_URL;
+    if (allowed) return callback(null, true);
+
+    callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
