@@ -1,25 +1,15 @@
-/**
- * JWT authentication middleware.
- *
- * Behaviour depends on the REQUIRE_AUTH environment variable:
- *
- *   REQUIRE_AUTH=true  → 401 when the token is absent or invalid
- *   REQUIRE_AUTH unset → validates the token when present, but continues
- *                        without setting req.user when the header is absent
- *                        (backward-compatible dev mode)
- *
- * A valid JWT sets req.user = { user_id: string } for use in downstream
- * handlers that need ownership checks.
- */
-
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { firebaseAuth } from '../config/firebase';
 
 export interface AuthUser {
+  uid: string;
   user_id: string;
+  email?: string;
+  name?: string;
+  picture?: string;
 }
 
-// Augment Express Request so TypeScript knows about req.user
 declare global {
   namespace Express {
     interface Request {
@@ -31,7 +21,6 @@ declare global {
 const JWT_SECRET = (): string => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    // Fail loudly in production; use a hard-coded dev key in development.
     if (process.env.NODE_ENV === 'production') {
       throw new Error('JWT_SECRET environment variable is required in production');
     }
@@ -41,35 +30,53 @@ const JWT_SECRET = (): string => {
 };
 
 /**
- * Sign a JWT for a given user_id.
- * Expires in 24 hours by default.
+ * Legacy helper retained for the older /api/auth/token endpoint.
+ * New clients should use Firebase ID tokens instead.
  */
 export const signToken = (user_id: string, expiresIn = '24h'): string => {
   return jwt.sign({ user_id }, JWT_SECRET(), { expiresIn } as jwt.SignOptions);
 };
 
+const setUserFromFirebaseToken = async (token: string, req: Request): Promise<void> => {
+  const decoded = await firebaseAuth.verifyIdToken(token);
+  req.user = {
+    uid: decoded.uid,
+    user_id: decoded.uid,
+    email: decoded.email,
+    name: typeof decoded.name === 'string' ? decoded.name : undefined,
+    picture: typeof decoded.picture === 'string' ? decoded.picture : undefined,
+  };
+};
+
+const setUserFromLegacyJwt = (token: string, req: Request): void => {
+  const payload = jwt.verify(token, JWT_SECRET()) as { user_id: string };
+  if (!payload.user_id || typeof payload.user_id !== 'string') {
+    throw new Error('Invalid payload');
+  }
+  req.user = { uid: payload.user_id, user_id: payload.user_id };
+};
+
 /**
- * Express middleware that authenticates requests via a Bearer JWT.
+ * Express middleware that authenticates requests with a Firebase Bearer token.
  *
- * On success:  sets req.user and calls next()
- * On failure:  returns 401 (only when REQUIRE_AUTH=true)
- * No header:   continues when REQUIRE_AUTH is not set
+ * REQUIRE_AUTH=true rejects missing/invalid tokens. In development, missing
+ * tokens can still pass through to preserve older local workflows.
  */
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  const requireAuth = process.env.REQUIRE_AUTH === 'true';
-  const authHeader  = req.headers['authorization'];
+): Promise<void> => {
+  const requireAuth = process.env.REQUIRE_AUTH !== 'false';
+  const authHeader = req.headers['authorization'];
 
   if (!authHeader) {
     if (requireAuth) {
       res.status(401).json({ error: 'Missing Authorization header' });
       return;
     }
-    // Dev/fallback: no header → continue unauthenticated
-    return next();
+    next();
+    return;
   }
 
   const [scheme, token] = authHeader.split(' ');
@@ -79,16 +86,17 @@ export const authenticate = (
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET()) as { user_id: string };
-    if (!payload.user_id || typeof payload.user_id !== 'string') {
-      throw new Error('Invalid payload');
-    }
-    req.user = { user_id: payload.user_id };
+    await setUserFromFirebaseToken(token, req);
     next();
-  } catch (err) {
-    const message = err instanceof jwt.TokenExpiredError
-      ? 'Token expired. Please re-authenticate.'
-      : 'Invalid or malformed token.';
-    res.status(401).json({ error: message });
+  } catch (firebaseErr) {
+    try {
+      setUserFromLegacyJwt(token, req);
+      next();
+    } catch {
+      const message = firebaseErr instanceof Error
+        ? firebaseErr.message
+        : 'Invalid or malformed token.';
+      res.status(401).json({ error: message });
+    }
   }
 };

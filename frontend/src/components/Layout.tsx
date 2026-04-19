@@ -4,10 +4,12 @@ import ChatPanel from './chat/ChatPanel';
 import DocumentPreviewPanel from './chat/DocumentPreviewPanel';
 import { SidebarIcon, PanelLeftCloseIcon } from './common/icons';
 import { useChat } from '../hooks/useChat';
+import { useAuth } from '../auth/useAuth';
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { previewingDocument, hidePreview } = useChat();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex h-screen w-full relative overflow-hidden bg-white dark:bg-slate-950">
@@ -61,6 +63,22 @@ const Layout = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen min-w-0">
+        <header className="h-14 flex items-center justify-end gap-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4">
+          <div className="min-w-0 text-right">
+            <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+              {user?.displayName || user?.email || 'Signed in'}
+            </p>
+            {user?.email && (
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+            )}
+          </div>
+          <button
+            onClick={logout}
+            className="rounded-md border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900"
+          >
+            Logout
+          </button>
+        </header>
         <main className={`flex-1 transition-all duration-500 ease-in-out ${
           previewingDocument 
             ? 'mr-0 md:mr-[50%] lg:mr-[40%] xl:mr-[25%]' 

@@ -12,7 +12,7 @@ const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://local
 
 const apiClient = axios.create({ baseURL: `${API_BASE_URL}/api` });
 
-// Attach the JWT on every outgoing request
+// Attach the Firebase ID token on every outgoing request.
 apiClient.interceptors.request.use(async (config) => {
   const header = await authHeader();
   if (header) {
@@ -24,21 +24,21 @@ apiClient.interceptors.request.use(async (config) => {
 
 /** Create a new chat session. */
 export const createChatSession = async (
-  userId: string,
+  _userId?: string,
   title?: string
 ): Promise<SessionInfo> => {
-  const res = await apiClient.post('/chat/new', { user_id: userId, title });
+  const res = await apiClient.post('/chat/new', { title });
   return res.data;
 };
 
 /** Fetch a paginated list of chat sessions for the user. */
 export const fetchChatList = async (
-  userId: string,
+  _userId?: string,
   page  = 1,
   limit = 30
 ): Promise<ChatListResult> => {
   const res = await apiClient.get('/chat/list', {
-    params: { user_id: userId, page, limit },
+    params: { page, limit },
   });
   return res.data;
 };
@@ -66,13 +66,18 @@ export const sendSessionMessage = async (
   message: string,
   onChunk: (chunk: string) => void
 ): Promise<SendMessageResult> => {
+  const authorization = await authHeader();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream',
+  };
+  if (authorization) {
+    headers.Authorization = authorization;
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/chat/${chatId}/message`, {
     method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Accept':        'text/event-stream',
-      'Authorization': await authHeader(),
-    },
+    headers,
     body: JSON.stringify({ message }),
   });
 

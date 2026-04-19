@@ -37,7 +37,7 @@ export const newChat = async (
 ): Promise<void> => {
   try {
     const { user_id, title } = req.body as { user_id?: string; title?: string };
-    const chat = await createChat({ user_id: user_id ?? null, title });
+    const chat = await createChat({ user_id: req.user?.uid ?? user_id ?? null, title });
     res.status(201).json({
       chat_id:    chat.chat_id,
       title:      chat.title,
@@ -92,7 +92,7 @@ export const getChat = async (
 /**
  * Paginated list of chat sessions for a user (metadata only, no messages).
  *
- * Query params:  user_id (required unless JWT present), page, limit, sort
+ * Query params:  page, limit, sort
  */
 export const listChats = async (
   req: Request,
@@ -112,7 +112,7 @@ export const listChats = async (
       sort?:    string;
     };
 
-    // JWT user_id takes precedence to prevent spoofing the query param
+    // Verified Firebase UID takes precedence to prevent spoofing the query param.
     const resolvedUserId = req.user?.user_id ?? user_id;
     if (!resolvedUserId) {
       res.status(400).json({ error: 'user_id query parameter is required' });

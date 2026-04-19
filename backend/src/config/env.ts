@@ -38,8 +38,10 @@ export const ENV = {
   S3_BUCKET_NAME:        process.env.S3_BUCKET_NAME,
 
   // Auth
-  JWT_SECRET:   process.env.JWT_SECRET,
-  REQUIRE_AUTH: process.env.REQUIRE_AUTH === 'true',
+  JWT_SECRET:                   process.env.JWT_SECRET,
+  REQUIRE_AUTH:                 process.env.REQUIRE_AUTH !== 'false',
+  FIREBASE_PROJECT_ID:          process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_SERVICE_ACCOUNT_KEY: process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
 
   // Signed URL TTL (seconds)
   SIGNED_URL_EXPIRES: parseInt(process.env.SIGNED_URL_EXPIRES || '3600', 10),

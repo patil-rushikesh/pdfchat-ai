@@ -101,7 +101,7 @@ export const uploadChatDocument = async (
     // ── Step 2 — Store metadata in PostgreSQL ────────────────────────────────
     const docRecord = await createDocument({
       chat_id:   chatId,
-      user_id:   user_id ?? chat.user_id ?? null,
+      user_id:   req.user?.uid ?? user_id ?? chat.user_id ?? null,
       file_name: safeFileName,
       s3_key,
       s3_url,

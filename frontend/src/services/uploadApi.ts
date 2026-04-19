@@ -11,7 +11,7 @@ const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://local
 
 const apiClient = axios.create({ baseURL: `${API_BASE_URL}/api` });
 
-// Attach the JWT on every outgoing request
+// Attach the Firebase ID token on every outgoing request.
 apiClient.interceptors.request.use(async (config) => {
   const header = await authHeader();
   if (header) {

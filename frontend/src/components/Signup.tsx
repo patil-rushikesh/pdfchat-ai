@@ -1,0 +1,109 @@
+import React, { useState } from 'react';
+import { useAuth } from '../auth/useAuth';
+
+const Signup = ({ onShowLogin }: { onShowLogin: () => void }) => {
+  const { signup, loginWithGoogle } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await signup(email, password, displayName);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google signup failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen grid place-items-center bg-slate-50 px-4">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-red-600">PaperMind AI</p>
+          <h1 className="mt-2 text-2xl font-bold text-slate-950">Create your account</h1>
+          <p className="mt-1 text-sm text-slate-500">Your PDFs, chats, and history stay tied to your UID.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Name</span>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700">Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+            />
+          </label>
+
+          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Creating account...' : 'Create account'}
+          </button>
+        </form>
+
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={loading}
+          className="mt-3 w-full rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Continue with Google
+        </button>
+
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Already have an account?{' '}
+          <button type="button" onClick={onShowLogin} className="font-semibold text-red-600 hover:text-red-700">
+            Sign in
+          </button>
+        </p>
+      </section>
+    </main>
+  );
+};
+
+export default Signup;

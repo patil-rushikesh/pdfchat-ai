@@ -2,6 +2,7 @@
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
 import type { AppState, Document, Message, MessageSource, Toast, UploadProgress, Theme, UserType, ChatMode, ChatSession } from '../types';
 import { GREETING_MESSAGES } from '../constants';
+import { useAuth } from '../auth/useAuth';
 
 type Action =
   | { type: 'ADD_DOCUMENT'; payload: Document }
@@ -33,11 +34,13 @@ type Action =
   | { type: 'SET_ACTIVE_CHAT_MESSAGES'; payload: Message[] }
   | { type: 'SET_CHAT_SESSIONS_LOADING'; payload: boolean };
 
-// Load persisted state from localStorage
-const loadPersistedState = (): Partial<AppState> => {
+const storageKey = (uid: string, key: string): string => `pdfchat:${uid}:${key}`;
+
+// Load persisted state from localStorage, scoped by Firebase UID.
+const loadPersistedState = (uid: string): Partial<AppState> => {
   try {
-    const documents = localStorage.getItem('pdfchat-documents');
-    const messagesByDocument = localStorage.getItem('pdfchat-messages-by-document');
+    const documents = localStorage.getItem(storageKey(uid, 'documents'));
+    const messagesByDocument = localStorage.getItem(storageKey(uid, 'messages-by-document'));
     return {
       documents: documents ? JSON.parse(documents) : [],
       messagesByDocument: messagesByDocument ? JSON.parse(messagesByDocument) : {},
@@ -48,34 +51,36 @@ const loadPersistedState = (): Partial<AppState> => {
   }
 };
 
-const persistedState = loadPersistedState();
+const createInitialState = (uid: string): AppState => {
+  const persistedState = loadPersistedState(uid);
 
-const initialState: AppState = {
-  documents: persistedState.documents || [],
-  activeDocumentId: null,
-  previewingDocument: null,
-  messages: [GREETING_MESSAGES.pdf],
-  messagesByMode: {
-    pdf: [GREETING_MESSAGES.pdf],
-    general: [GREETING_MESSAGES.general],
-    youtube: [GREETING_MESSAGES.youtube],
-    site: [GREETING_MESSAGES.site],
-  },
-  messagesByDocument: persistedState.messagesByDocument || {},
-  isLoading: false,
-  isStreaming: false,
-  uploadProgress: null,
-  theme: 'light',
-  userType: 'general',
-  mode: 'pdf',
-  youtubeUrl: null,
-  siteUrl: null,
-  error: null,
-  toasts: [],
-  // Chat session state
-  chatSessions: [],
-  activeChatId: null,
-  chatSessionsLoading: false,
+  return {
+    documents: persistedState.documents || [],
+    activeDocumentId: null,
+    previewingDocument: null,
+    messages: [GREETING_MESSAGES.pdf],
+    messagesByMode: {
+      pdf: [GREETING_MESSAGES.pdf],
+      general: [GREETING_MESSAGES.general],
+      youtube: [GREETING_MESSAGES.youtube],
+      site: [GREETING_MESSAGES.site],
+    },
+    messagesByDocument: persistedState.messagesByDocument || {},
+    isLoading: false,
+    isStreaming: false,
+    uploadProgress: null,
+    theme: 'light',
+    userType: 'general',
+    mode: 'pdf',
+    youtubeUrl: null,
+    siteUrl: null,
+    error: null,
+    toasts: [],
+    // Chat session state
+    chatSessions: [],
+    activeChatId: null,
+    chatSessionsLoading: false,
+  };
 };
 
 const AppContext = createContext<{
@@ -278,7 +283,9 @@ const appReducer = (state: AppState, action: Action): AppState => {
 };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const { user } = useAuth();
+  const userId = user?.uid ?? 'anonymous';
+  const [state, dispatch] = useReducer(appReducer, userId, createInitialState);
 
   // Apply theme to document body
   useEffect(() => {
@@ -323,22 +330,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Persist documents to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('pdfchat-documents', JSON.stringify(state.documents));
+      localStorage.setItem(storageKey(userId, 'documents'), JSON.stringify(state.documents));
     } catch (error) {
       console.error('Failed to persist documents:', error);
     }
-  }, [state.documents]);
+  }, [state.documents, userId]);
 
   // Persist chat history per document to localStorage
   useEffect(() => {
     try {
       if (state.messagesByDocument) {
-        localStorage.setItem('pdfchat-messages-by-document', JSON.stringify(state.messagesByDocument));
+        localStorage.setItem(storageKey(userId, 'messages-by-document'), JSON.stringify(state.messagesByDocument));
       }
     } catch (error) {
       console.error('Failed to persist messages by document:', error);
     }
-  }, [state.messagesByDocument]);
+  }, [state.messagesByDocument, userId]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
